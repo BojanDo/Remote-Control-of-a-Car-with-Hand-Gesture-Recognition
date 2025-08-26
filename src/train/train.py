@@ -9,8 +9,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 import numpy as np
 from sklearn.utils import resample
-
-
+from scipy.stats import mode
 from confusion_matrix import plot_and_save_confusion_matrix
 
 # Load data
@@ -70,20 +69,21 @@ for i in range(NUM_MODELS):
         filename=f"generated/confusion_matrix_{i}.png"
     )
 
+# Majority vote
+for n in range(3, NUM_MODELS + 1, 2):
+    preds = [np.argmax(models[i].predict(X_test), axis=1) for i in range(n)]
+    preds = np.array(preds).T
 
-pred_probs_list = [model.predict(X_test) for model in models]
-avg_pred_probs = np.mean(pred_probs_list, axis=0)
-y_pred = np.argmax(avg_pred_probs, axis=1)
+    y_pred, _ = mode(preds, axis=1)
+    y_pred = y_pred.ravel()
 
-plot_and_save_confusion_matrix(
-    y_true=y_test,
-    y_pred=y_pred,
-    labels=GESTURES,
-    title="Ensemble Confusion Matrix",
-    filename="generated/confusion_matrix_ensemble.png"
-)
-
-
+    plot_and_save_confusion_matrix(
+        y_true=y_test,
+        y_pred=y_pred,
+        labels=GESTURES,
+        title=f"Ensemble Confusion Matrix ({n} models)",
+        filename=f"generated/confusion_matrix_ensemble_{n}.png"
+    )
 
 # Generate header
 created_header_from_models(tflite_models, input_scale, input_zero_point, mean, std)

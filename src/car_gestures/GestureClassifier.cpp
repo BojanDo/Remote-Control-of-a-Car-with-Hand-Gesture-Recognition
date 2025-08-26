@@ -70,16 +70,16 @@ Gesture GestureClassifier::classify(const float* imu_window) {
     }
 
     // Print probabilities for this model
-    Serial.println("📊 Model " + String(m) + " probabilities:");
+    //Serial.println("Model " + String(m) + " probabilities:");
     int8_t* output_data = outputs[m]->data.int8;
     float max_prob = -1.0f;
     int max_index = -1;
     for (int i = 0; i < GESTURE_CLASSES; ++i) {
       float prob = (output_data[i] - outputs[m]->params.zero_point) * outputs[m]->params.scale;
-      Serial.print("   ");
+      /*Serial.print("   ");
       Serial.print(gestureLabels[i]);
       Serial.print(": ");
-      Serial.println(prob, 4);
+      Serial.println(prob, 4);*/
 
       if (prob > max_prob) {
         max_prob = prob;
@@ -90,19 +90,19 @@ Gesture GestureClassifier::classify(const float* imu_window) {
     // Only count as a "vote" if it's above threshold
     if (max_prob > DETECTION_THRESHOLD) {
       votes[max_index]++;
-      Serial.println("✅ Model " + String(m) + " votes for: " + String(gestureLabels[max_index]));
+      //Serial.println("Model " + String(m) + " votes for: " + String(gestureLabels[max_index]));
     } else {
-      Serial.println("⚠️ Model " + String(m) + " no vote (max=" + String(max_prob, 4) + ")");
+      //Serial.println("Model " + String(m) + " no vote (max=" + String(max_prob, 4) + ")");
     }
   }
 
   // Print votes summary
-  Serial.println("🗳 Votes summary:");
+ // Serial.println("Votes summary:");
   for (int i = 0; i < GESTURE_CLASSES; ++i) {
-    Serial.print("   ");
+   /* Serial.print("   ");
     Serial.print(gestureLabels[i]);
     Serial.print(": ");
-    Serial.println(votes[i]);
+    Serial.println(votes[i]);*/
   }
 
   // Find class with most votes
@@ -116,9 +116,9 @@ Gesture GestureClassifier::classify(const float* imu_window) {
   }
 
   if (best_class != -1) {
-    Serial.println("🏆 Final prediction: " + String(gestureLabels[best_class]));
+    Serial.println("Final prediction: " + String(gestureLabels[best_class]));
   } else {
-    Serial.println("🚫 No gesture detected");
+    Serial.println("No gesture detected");
   }
 
   return (best_class != -1) ? intToGesture(best_class) : none;

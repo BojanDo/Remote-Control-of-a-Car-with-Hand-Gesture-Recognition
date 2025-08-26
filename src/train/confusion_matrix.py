@@ -8,4 +8,4 @@ def plot_and_save_confusion_matrix(y_true, y_pred, labels, title, filename):
     plt.title(title)
     plt.tight_layout()
     plt.savefig(filename, dpi=300)
-    plt.close()  # prevent overlap when called multiple times
+    plt.close()

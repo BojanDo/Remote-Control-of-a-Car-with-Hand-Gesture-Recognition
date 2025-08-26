@@ -33,9 +33,9 @@ for i in range(NUM_MODELS):
     # Bootstrap sampling
     X_boot, y_boot = resample(
         X_train, y_train,
-        replace=True,                  # sample with replacement
-        n_samples=len(X_train),        # keep same size as original
-        random_state=i                 # reproducible per model
+        replace=True,
+        n_samples=len(X_train),
+        random_state=i
     )
 
     # Train model

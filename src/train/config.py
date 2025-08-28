@@ -9,6 +9,7 @@ GESTURES = [
 ]
 NUM_MODELS = 5
 DATA_DIR = "../gesture_data"
+TEST_DIR = "../test_data"
 SAMPLES_PER_SEQUENCE = 500
 EPOCHS = 200
 BATCH_SIZE = 16

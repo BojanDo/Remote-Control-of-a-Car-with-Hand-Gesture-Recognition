@@ -1,7 +1,8 @@
 import os
 import pandas as pd
 import numpy as np
-from config import GESTURES, DATA_DIR, SAMPLES_PER_SEQUENCE
+from config import GESTURES, DATA_DIR, TEST_DIR, SAMPLES_PER_SEQUENCE
+
 
 def load_sequences_from_directory(data_dir, gestures):
     X, y = [], []
@@ -22,8 +23,10 @@ def load_sequences_from_directory(data_dir, gestures):
     return X, y
 
 def load_sequences():
-    X_orig, y_orig = load_sequences_from_directory(DATA_DIR, GESTURES)
-    X_aug, y_aug = [],[]
+    X, y = load_sequences_from_directory(DATA_DIR, GESTURES)
+    return X, y
 
-    return np.array(X_orig + X_aug).astype(np.float32), np.array(y_orig + y_aug)
+def load_test_sequences():
+    X, y = load_sequences_from_directory(TEST_DIR, GESTURES)
+    return X, y
 

@@ -10,8 +10,8 @@ PORT = "/dev/ttyUSB0"
 BAUD_RATE = 115200
 SAMPLES_PER_SEQUENCE = 500
 
-NUM_SEQUENCES = 32
-NUM_NONE_SEQUENCES = 32
+NUM_SEQUENCES = 30
+NUM_NONE_SEQUENCES = 30
 
 GESTURES = [
     "circle_left",
@@ -36,7 +36,7 @@ GESTURE_COLORS = {
 RESET_COLOR = "\033[0m"
 
 
-OUTPUT_DIR = "gesture_data"
+OUTPUT_DIR = "test_data"
 
 def print_gesture_prompt(gesture: str, index: int):
     color = GESTURE_COLORS.get(gesture, "\033[97m")

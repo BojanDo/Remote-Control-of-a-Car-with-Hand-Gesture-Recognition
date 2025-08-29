@@ -1,22 +1,22 @@
 import subprocess
 import fileinput
 import glob
-from config import HEADER_OUTPUT_PATH, GESTURES, NUM_MODELS
+from config import GESTURES, NUM_MODELS
 
 
-def add_models(outfile):
-    h_files = sorted(glob.glob("generated/model_data_*.h"))
+def add_models(outfile, generated_folder, num_models):
+    h_files = sorted(glob.glob(f"generated/{generated_folder}/model_data_*.h"))
 
     for h_file in h_files:
         with open(h_file, "r") as infile:
             outfile.write(infile.read())
 
-    outfile.write(f"\n#define NUM_MODELS {NUM_MODELS}\n")
+    outfile.write(f"\n#define NUM_MODELS {num_models}\n")
 
     outfile.write("""\ninline const unsigned char* tflite_models[NUM_MODELS] = {\n""");
-    for i in range(NUM_MODELS -1):
+    for i in range(num_models - 1):
         outfile.write(f"    gesture_model_{i}_tflite,\n")
-    outfile.write(f"    gesture_model_{NUM_MODELS -1}_tflite\n")
+    outfile.write(f"    gesture_model_{num_models - 1}_tflite\n")
     outfile.write("""};
 """)
     outfile.write(f"\n#define GESTURE_CLASSES {len(GESTURES)}\n")
@@ -49,15 +49,15 @@ def add_gesture_enum(outfile):
     outfile.write("    }\n}\n")
 
 
-def created_header_from_models(tflite_models, scale, zero_point, mean, std):
+def created_header_from_models(generated_folder, header_path, num_models, tflite_models, scale, zero_point, mean, std):
     for i, tflite_model in enumerate(tflite_models):
-        tflite_mode_path = f"generated/gesture_model_{i}.tflite"
-        output_path = f"generated/model_data_{i}.h"
+        tflite_model_path = f"generated/{generated_folder}/gesture_model_{i}.tflite"
+        output_path = f"generated/{generated_folder}/model_data_{i}.h"
 
-        with open(tflite_mode_path, "wb") as f:
+        with open(tflite_model_path, "wb") as f:
             f.write(tflite_model)
 
-        subprocess.run(["xxd", "-i", tflite_mode_path, output_path], check=True)
+        subprocess.run(["xxd", "-i", tflite_model_path, output_path], check=True)
 
         for line in fileinput.input(output_path, inplace=True):
             if fileinput.filelineno() == 1:
@@ -68,15 +68,15 @@ def created_header_from_models(tflite_models, scale, zero_point, mean, std):
             else:
                 print(line, end="")
 
-    with open(HEADER_OUTPUT_PATH, "w") as outfile:
+    with open(header_path, "w") as outfile:
         outfile.write("""#ifndef MODELDATA_H
 #define MODELDATA_H""")
 
-        add_models(outfile)
+        add_models(outfile, generated_folder, num_models)
         add_quantization(outfile, scale, zero_point)
         add_standardization(outfile, mean, std)
         add_gesture_enum(outfile)
 
         outfile.write("#endif //MODELDATA_H")
 
-    print(f"All model headers combined into {HEADER_OUTPUT_PATH}")
+    print(f"All model headers combined into {header_path}")

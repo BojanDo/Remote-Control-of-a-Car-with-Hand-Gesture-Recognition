@@ -24,9 +24,9 @@ def load_sequences_from_directory(data_dir, gestures):
 
 def load_sequences():
     X, y = load_sequences_from_directory(DATA_DIR, GESTURES)
-    return X, y
+    return np.array(X), np.array(y)
 
 def load_test_sequences():
     X, y = load_sequences_from_directory(TEST_DIR, GESTURES)
-    return X, y
+    return np.array(X), np.array(y)
 

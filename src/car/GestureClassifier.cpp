@@ -14,10 +14,10 @@ bool GestureClassifier::init() {
 
   static tflite::MicroInterpreter static_interpreters[NUM_MODELS] = {
     tflite::MicroInterpreter(models[0], resolver, tensor_arenas[0], kTensorArenaSize),
-    tflite::MicroInterpreter(models[1], resolver, tensor_arenas[1], kTensorArenaSize),
+   /* tflite::MicroInterpreter(models[1], resolver, tensor_arenas[1], kTensorArenaSize),
     tflite::MicroInterpreter(models[2], resolver, tensor_arenas[2], kTensorArenaSize),
     tflite::MicroInterpreter(models[3], resolver, tensor_arenas[3], kTensorArenaSize),
-    tflite::MicroInterpreter(models[4], resolver, tensor_arenas[4], kTensorArenaSize)
+    tflite::MicroInterpreter(models[4], resolver, tensor_arenas[4], kTensorArenaSize)*/
   };
 
   for (int i = 0; i < NUM_MODELS; ++i) {

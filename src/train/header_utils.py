@@ -1,5 +1,6 @@
 import subprocess
 import fileinput
+import re
 import glob
 from config import GESTURES, NUM_MODELS
 
@@ -59,14 +60,20 @@ def created_header_from_models(generated_folder, header_path, num_models, tflite
 
         subprocess.run(["xxd", "-i", tflite_model_path, output_path], check=True)
 
+        pattern = re.compile(r"(?:\w+\s+)+(?P<varname>\w*_gesture_model_" + str(i) + r"_tflite_len)")
+
+
         for line in fileinput.input(output_path, inplace=True):
             if fileinput.filelineno() == 1:
                 print(f"\ninline const unsigned char gesture_model_{i}_tflite[] = {{")
-            elif f"unsigned int generated_gesture_model_{i}_tflite_len" in line:
-                print(line.replace(f"unsigned int generated_gesture_model_{i}_tflite_len",
-                                   f"inline const unsigned int gesture_model_{i}_tflite_len"), end="")
             else:
-                print(line, end="")
+                match = pattern.search(line)
+                if match:
+                    varname = match.group("varname")
+                    print(line.replace(varname, f"gesture_model_{i}_tflite_len")
+                          .replace("unsigned int", "inline const unsigned int"), end="")
+                else:
+                    print(line, end="")
 
     with open(header_path, "w") as outfile:
         outfile.write("""#ifndef MODELDATA_H

@@ -51,7 +51,7 @@ Gesture GestureClassifier::classify(const float* imu_window) {
     // Fill input buffer
     int input_index = 0;
     for (int i = 0; i < WINDOW_SIZE * NUM_AXES; ++i) {
-      int8_t quantized = (int8_t)(imu_window[i] / SCALE + ZERO_POINT);
+      int8_t quantized = (int8_t)(imu_window[i] / inputs[m]->params.scale + inputs[m]->params.zero_point);
       inputs[m]->data.int8[input_index++] = quantized;
     }
 
@@ -76,6 +76,8 @@ Gesture GestureClassifier::classify(const float* imu_window) {
     // Only count as a "vote" if it's above threshold
     if (max_prob > DETECTION_THRESHOLD) {
       votes[max_index]++;
+    } else {
+      votes[none]++;
     }
   }
 
@@ -89,5 +91,5 @@ Gesture GestureClassifier::classify(const float* imu_window) {
     }
   }
 
-  return (best_class != -1) ? intToGesture(best_class) : none;
+  return (best_class != -1)? intToGesture(best_class) : none;
 }

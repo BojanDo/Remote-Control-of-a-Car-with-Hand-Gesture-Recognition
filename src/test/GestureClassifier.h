@@ -14,20 +14,21 @@
 
 class GestureClassifier {
 public:
-    GestureClassifier();
-    bool init();
-    Gesture classify(const float* imu_window);
+  GestureClassifier();
+  bool init();
+  Gesture* classify(const float* imu_window);
 
 private:
-    const tflite::Model* models[NUM_MODELS];
-    tflite::MicroInterpreter* interpreters[NUM_MODELS];
-    TfLiteTensor* inputs[NUM_MODELS];
-    TfLiteTensor* outputs[NUM_MODELS];
+  const tflite::Model* models[NUM_MODELS];
+  tflite::MicroInterpreter* interpreters[NUM_MODELS];
+  TfLiteTensor* inputs[NUM_MODELS];
+  TfLiteTensor* outputs[NUM_MODELS];
 
-    static constexpr int kTensorArenaSize = 9 * 1024;
-    alignas(16) uint8_t tensor_arenas[NUM_MODELS][kTensorArenaSize];
+  static constexpr int kTensorArenaSize = 9 * 1024;
+  alignas(16) uint8_t tensor_arenas[NUM_MODELS][kTensorArenaSize];
+  Gesture findBestGesture(int votes[]);
 };
 
 
 
-#endif //GESTURECLASSIFIER_H
+#endif  //GESTURECLASSIFIER_H

@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "GestureClassifier.h"
 #include "IMUBuffer.h"
-#include "model_data.h"   // imu_mean, imu_std, WINDOW_SIZE, NUM_AXES
+#include "model_data.h"  // imu_mean, imu_std, WINDOW_SIZE, NUM_AXES
 
 GestureClassifier gestureClassifier;
 IMUBuffer imuBuffer;
@@ -13,7 +13,8 @@ void setup() {
 
   if (!gestureClassifier.init()) {
     Serial.println("Model init failed!");
-    while (1);
+    while (1)
+      ;
   }
 
   Serial.println("✅ ESP32 ready for serial test (send START ... END).");
@@ -36,12 +37,19 @@ void loop() {
       if (imuBuffer.isFull()) {
         // Run classification
         imuBuffer.getWindow(imu_window);
-        Gesture gesture = gestureClassifier.classify(imu_window);
+        Gesture* results = gestureClassifier.classify(imu_window);
 
-        // Print result as index
-        Serial.println((int)gesture);
+        for (int i = 0; i < NUM_MODELS + 2; i++) {
+          Serial.print(results[i]);
+          if (i < NUM_MODELS + 1) Serial.print(",");
+        }
+        Serial.println();
       } else {
-        Serial.println("-1"); // not enough samples
+        for (int i = 0; i < NUM_MODELS + 2; i++) {
+          Serial.print(-1);
+          if (i < NUM_MODELS + 1) Serial.print(",");
+        }
+        Serial.println();
       }
       receiving = false;
       return;
@@ -57,7 +65,7 @@ void loop() {
         SensorData data;
         for (int i = 0; i < 3; i++) {
           data.accel[i] = values[i];
-          data.gyro[i]  = values[i + 3];
+          data.gyro[i] = values[i + 3];
         }
         imuBuffer.addSample(data);
       }

@@ -7,13 +7,6 @@ def representative_dataset(X_train):
 
 
 def representative_dataset1(X_train, y_train, none_class_index, num_samples=1000, bias_factor=3):
-    """
-    Generator for TFLite quantization calibration.
-
-    - Oversamples 'none' class windows to give them more weight.
-    - num_samples controls how many windows are yielded (1000 is usually enough).
-    - bias_factor = how many times more likely 'none' samples are chosen.
-    """
     # Indices for gestures vs none
     none_idx = np.where(y_train == none_class_index)[0]
     other_idx = np.where(y_train != none_class_index)[0]

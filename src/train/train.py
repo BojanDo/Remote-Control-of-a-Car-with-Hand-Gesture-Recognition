@@ -29,6 +29,7 @@ X_train, y_train = augment_training_data(X_train, y_train, warp_factors, target_
 X_train, X_val, X_test, mean, std = standardize_dataset(X_train, X_val, X_test)
 
 
+
 def train_model(X_m, y_m, seed):
     tf.keras.utils.set_random_seed(seed)
     tf.config.experimental.enable_op_determinism()
@@ -151,28 +152,7 @@ def tflite_model_accuracy(tflite_model, title, filename):
     )
 
 
-def bootstrap_with_full_none(X_train, y_train, random_state=None):
-    # Split none vs others
-    none_mask = (y_train == 6)
-    X_none, y_none = X_train[none_mask], y_train[none_mask]
-    X_other, y_other = X_train[~none_mask], y_train[~none_mask]
-
-    # Bootstrap only the other classes
-    X_boot, y_boot = resample(
-        X_other, y_other,
-        replace=True,
-        n_samples=len(X_other),
-        random_state=random_state
-    )
-
-    # Concatenate with the full 'none' dataset
-    X_combined = np.concatenate([X_boot, X_none], axis=0)
-    y_combined = np.concatenate([y_boot, y_none], axis=0)
-
-    return X_combined, y_combined
-
-
-def train_ensemble_models():
+def train_ensemble_models(folder, biased=False):
     models = []
     tflite_models = []
     for i in range(NUM_MODELS):
@@ -183,13 +163,17 @@ def train_ensemble_models():
             random_state=i
         )
 
-        model, tflite_model, input_scale, input_zero_point = train_model(X_boot, y_boot, i)
+        if biased:
+            model, tflite_model, input_scale, input_zero_point = train_model_biased(X_boot, y_boot, i)
+        else:
+            model, tflite_model, input_scale, input_zero_point = train_model(X_boot, y_boot, i)
+
         models.append(model)
         tflite_models.append(tflite_model)
 
-        model_accuracy(model, f"Confusion Matrix - Model {i}", f"generated/ensemble/confusion_matrix_{i}.png")
+        model_accuracy(model, f"Confusion Matrix - Model {i}", f"generated/{folder}/confusion_matrix_{i}.png")
         tflite_model_accuracy(tflite_model, f"Confusion Matrix - TFLite Model {i}",
-                              f"generated/ensemble/confusion_matrix_tflite_{i}.png")
+                              f"generated/{folder}/confusion_matrix_tflite_{i}.png")
 
     # Majority vote
     for n in range(3, NUM_MODELS + 1, 2):
@@ -204,160 +188,39 @@ def train_ensemble_models():
             y_pred=y_pred,
             labels=GESTURES,
             title=f"Ensemble Confusion Matrix ({n} models)",
-            filename=f"generated/ensemble/confusion_matrix_ensemble_{n}.png"
+            filename=f"generated/{folder}/confusion_matrix_ensemble_{n}.png"
         )
 
     # Generate header
-    created_header_from_models("ensemble", "generated/ensemble/model_data.h", NUM_MODELS, tflite_models, input_scale,
+    created_header_from_models(f"{folder}", f"generated/{folder}/model_data.h", NUM_MODELS, tflite_models,
+                               input_scale,
                                input_zero_point,
                                mean, std)
 
 
-def train_separate_models():
+def train_separate_models(folder, biased=False):
     models = []
     tflite_models = []
     for i in range(NUM_MODELS):
-        model, tflite_model, input_scale, input_zero_point = train_model(X_train, y_train, i)
+        if biased:
+            model, tflite_model, input_scale, input_zero_point = train_model_biased(X_train, y_train, i)
+        else:
+            model, tflite_model, input_scale, input_zero_point = train_model(X_train, y_train, i)
+
         models.append(model)
         tflite_models.append(tflite_model)
-        model_accuracy(model, f"Confusion Matrix - Model {i}", f"generated/separate/confusion_matrix_{i}.png")
+        model_accuracy(model, f"Confusion Matrix - Model {i}", f"generated/{folder}/confusion_matrix_{i}.png")
         tflite_model_accuracy(tflite_model, f"Confusion Matrix - TFLite Model {i}",
-                              f"generated/separate/confusion_matrix_tflite_{i}.png")
+                              f"generated/{folder}/confusion_matrix_tflite_{i}.png")
 
     # Generate header
-    created_header_from_models("separate", "generated/separate/model_data.h", NUM_MODELS, tflite_models, input_scale,
+    created_header_from_models(f"{folder}", f"generated/{folder}/model_data.h", NUM_MODELS, tflite_models,
+                               input_scale,
                                input_zero_point,
                                mean, std)
 
 
-def train_ensemble_models_biased():
-    models = []
-    tflite_models = []
-    for i in range(NUM_MODELS):
-        X_boot, y_boot = resample(
-            X_train, y_train,
-            replace=True,
-            n_samples=len(X_train),
-            random_state=i
-        )
-
-        model, tflite_model, input_scale, input_zero_point = train_model_biased(X_boot, y_boot, i)
-        models.append(model)
-        tflite_models.append(tflite_model)
-
-        model_accuracy(model, f"Confusion Matrix - Model {i}", f"generated/ensemble_biased/confusion_matrix_{i}.png")
-        tflite_model_accuracy(tflite_model, f"Confusion Matrix - TFLite Model {i}",
-                              f"generated/ensemble_biased/confusion_matrix_tflite_{i}.png")
-
-    # Majority vote
-    for n in range(3, NUM_MODELS + 1, 2):
-        preds = [np.argmax(models[i].predict(X_test), axis=1) for i in range(n)]
-        preds = np.array(preds).T
-
-        y_pred, _ = mode(preds, axis=1)
-        y_pred = y_pred.ravel()
-
-        plot_and_save_confusion_matrix(
-            y_true=y_test,
-            y_pred=y_pred,
-            labels=GESTURES,
-            title=f"Ensemble Confusion Matrix ({n} models)",
-            filename=f"generated/ensemble_biased/confusion_matrix_ensemble_{n}.png"
-        )
-
-    # Generate header
-    created_header_from_models("ensemble_biased", "generated/ensemble_biased/model_data.h", NUM_MODELS, tflite_models, input_scale,
-                               input_zero_point,
-                               mean, std)
-
-
-def train_separate_models_biased():
-    models = []
-    tflite_models = []
-    for i in range(NUM_MODELS):
-        model, tflite_model, input_scale, input_zero_point = train_model_biased(X_train, y_train, i)
-        models.append(model)
-        tflite_models.append(tflite_model)
-        model_accuracy(model, f"Confusion Matrix - Model {i}", f"generated/separate_biased/confusion_matrix_{i}.png")
-        tflite_model_accuracy(tflite_model, f"Confusion Matrix - TFLite Model {i}",
-                              f"generated/separate_biased/confusion_matrix_tflite_{i}.png")
-
-    # Generate header
-    created_header_from_models("separate_biased", "generated/separate_biased/model_data.h", NUM_MODELS, tflite_models, input_scale,
-                               input_zero_point,
-                               mean, std)
-
-
-def train_ensemble_models_full_none():
-    models = []
-    tflite_models = []
-    for i in range(NUM_MODELS):
-        X_boot, y_boot = bootstrap_with_full_none(X_train, y_train, random_state=i)
-
-        model, tflite_model, input_scale, input_zero_point = train_model(X_boot, y_boot, i)
-        models.append(model)
-        tflite_models.append(tflite_model)
-
-        model_accuracy(model, f"Confusion Matrix - Model {i}", f"generated/ensemble_none/confusion_matrix_{i}.png")
-        tflite_model_accuracy(tflite_model, f"Confusion Matrix - TFLite Model {i}",
-                              f"generated/ensemble_none/confusion_matrix_tflite_{i}.png")
-
-    # Majority vote
-    for n in range(3, NUM_MODELS + 1, 2):
-        preds = [np.argmax(models[i].predict(X_test), axis=1) for i in range(n)]
-        preds = np.array(preds).T
-
-        y_pred, _ = mode(preds, axis=1)
-        y_pred = y_pred.ravel()
-
-        plot_and_save_confusion_matrix(
-            y_true=y_test,
-            y_pred=y_pred,
-            labels=GESTURES,
-            title=f"Ensemble Confusion Matrix ({n} models)",
-            filename=f"generated/ensemble_none/confusion_matrix_ensemble_{n}.png"
-        )
-
-    # Generate header
-    created_header_from_models("ensemble_none", "generated/ensemble_none/model_data.h", NUM_MODELS, tflite_models, input_scale,
-                               input_zero_point,
-                               mean, std)
-
-def train_ensemble_models_biased_full_none():
-    models = []
-    tflite_models = []
-    for i in range(NUM_MODELS):
-        X_boot, y_boot = bootstrap_with_full_none(X_train, y_train, random_state=i)
-
-        model, tflite_model, input_scale, input_zero_point = train_model_biased(X_boot, y_boot, i)
-        models.append(model)
-        tflite_models.append(tflite_model)
-
-        model_accuracy(model, f"Confusion Matrix - Model {i}", f"generated/ensemble_biased_none/confusion_matrix_{i}.png")
-        tflite_model_accuracy(tflite_model, f"Confusion Matrix - TFLite Model {i}",
-                              f"generated/ensemble_biased_none/confusion_matrix_tflite_{i}.png")
-
-    # Majority vote
-    for n in range(3, NUM_MODELS + 1, 2):
-        preds = [np.argmax(models[i].predict(X_test), axis=1) for i in range(n)]
-        preds = np.array(preds).T
-
-        y_pred, _ = mode(preds, axis=1)
-        y_pred = y_pred.ravel()
-
-        plot_and_save_confusion_matrix(
-            y_true=y_test,
-            y_pred=y_pred,
-            labels=GESTURES,
-            title=f"Ensemble Confusion Matrix ({n} models)",
-            filename=f"generated/ensemble_biased_none/confusion_matrix_ensemble_{n}.png"
-        )
-
-    # Generate header
-    created_header_from_models("ensemble_biased_none", "generated/ensemble_biased_none/model_data.h", NUM_MODELS, tflite_models, input_scale,
-                               input_zero_point,
-                               mean, std)
-
+import sys
 
 if __name__ == "__main__":
     os.makedirs("../car/biased", exist_ok=True)
@@ -365,12 +228,8 @@ if __name__ == "__main__":
     os.makedirs("generated/separate", exist_ok=True)
     os.makedirs("generated/ensemble_biased", exist_ok=True)
     os.makedirs("generated/separate_biased", exist_ok=True)
-    os.makedirs("generated/ensemble_none", exist_ok=True)
-    os.makedirs("generated/ensemble_biased_none", exist_ok=True)
 
-    train_separate_models()
-    train_ensemble_models()
-    train_ensemble_models_biased()
-    train_separate_models_biased()
-    train_ensemble_models_full_none()
-    train_ensemble_models_biased_full_none()
+    train_ensemble_models("ensemble")
+    train_separate_models("separate")
+    train_ensemble_models("ensemble_biased", True)
+    train_separate_models("separate_biased", True)

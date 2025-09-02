@@ -3682,10 +3682,6 @@ inline const unsigned char* tflite_models[NUM_MODELS] = {
 
 #define GESTURE_CLASSES 7
 
-// Quantization parameters for each model
-#define SCALE 0.10505837947130203f
-#define ZERO_POINT -39
-
 // IMU standardization parameters
 #define IMU_FEATURES 6
 

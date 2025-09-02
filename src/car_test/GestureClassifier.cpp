@@ -35,21 +35,29 @@ bool GestureClassifier::init() {
   return true;
 }
 
-Gesture GestureClassifier::classify(const float* imu_window) {
-  int votes[GESTURE_CLASSES] = {0};
+Gesture* GestureClassifier::classify(const float* imu_window) {
+  static Gesture separate[NUM_MODELS + 2];
+  for (int i = 0; i < NUM_MODELS + 2; i++) {
+    separate[i] = none;
+  }
+
+  int votes5[GESTURE_CLASSES] = { 0 };
+  int votes3[GESTURE_CLASSES] = { 0 };
 
   for (int m = 0; m < NUM_MODELS; ++m) {
+    // Fill input buffer
     int input_index = 0;
     for (int i = 0; i < WINDOW_SIZE * NUM_AXES; ++i) {
       int8_t quantized = (int8_t)(imu_window[i] / inputs[m]->params.scale + inputs[m]->params.zero_point);
       inputs[m]->data.int8[input_index++] = quantized;
     }
 
+    // Run inference
     if (interpreters[m]->Invoke() != kTfLiteOk) {
-      Serial.println("Inference failed on model " + String(m));
       continue;
     }
 
+    // Find argmax for this model
     int8_t* output_data = outputs[m]->data.int8;
     float max_prob = -1.0f;
     int max_index = -1;
@@ -61,13 +69,27 @@ Gesture GestureClassifier::classify(const float* imu_window) {
       }
     }
 
+    // Only count as a "vote" if it's above threshold
     if (max_prob > DETECTION_THRESHOLD) {
-      votes[max_index]++;
-    } else {
-      votes[none]++;
+      separate[m] = intToGesture(max_index);
+      votes5[max_index]++;
+      if (m < 3)
+        votes3[max_index]++;
+    }else{
+      separate[m] = none;
+      votes5[none]++;
+      if (m < 3)
+        votes3[none]++;
     }
   }
+  separate[NUM_MODELS] = findBestGesture(votes3);
+  separate[NUM_MODELS + 1] = findBestGesture(votes5);
+  // Find class with most votes
+  return separate;
+}
 
+
+Gesture GestureClassifier::findBestGesture(int votes[]) {
   int best_class = -1;
   int best_votes = 0;
   for (int i = 0; i < GESTURE_CLASSES; ++i) {
@@ -77,5 +99,5 @@ Gesture GestureClassifier::classify(const float* imu_window) {
     }
   }
 
-  return (best_class != -1)? intToGesture(best_class) : none;
+  return (best_class != -1) ? intToGesture(best_class) : none;
 }
